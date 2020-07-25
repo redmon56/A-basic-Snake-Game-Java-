@@ -20,7 +20,8 @@ public class GameSpace extends JFrame implements Runnable {
 					goal = Color.WHITE;//current player goal STATE
 	private int xGoalCord,yGoalCord,xCord = 0, yCord = 0;
 	private UsersSnake snake;
-	private boolean play = true;
+	private String[] goalSetting;
+	private boolean play = true,gameOver;
 
 
 	public static void main(String[] arg){
@@ -106,13 +107,13 @@ public class GameSpace extends JFrame implements Runnable {
 			switch(e.getKeyCode()){
 				case KeyEvent.VK_SPACE: play = !play;break;
 				case KeyEvent.VK_LEFT:
-				case KeyEvent.VK_A: xCord=-1;System.out.println("Left");break;
+				case KeyEvent.VK_A: xCord=-1;yCord=0;System.out.println("Left");break;
 				case KeyEvent.VK_RIGHT:
-				case KeyEvent.VK_D: xCord=1;System.out.println("Right");break;
+				case KeyEvent.VK_D: xCord=1;yCord=0;System.out.println("Right");break;
 				case KeyEvent.VK_UP:
-				case KeyEvent.VK_W: yCord=1;break;
+				case KeyEvent.VK_W: xCord=0;yCord=-1;break;
 				case KeyEvent.VK_DOWN:
-				case KeyEvent.VK_S: yCord=-1;break;
+				case KeyEvent.VK_S: xCord=0;yCord=1;break;
 			}
 
 		}
@@ -130,25 +131,81 @@ public class GameSpace extends JFrame implements Runnable {
 	//			System.out.println("dd");
 	//		}
 	System.out.println("g");
-	while(true){
+	setGoal();
+	while(!gameOver){
 		if(play){
 			update();
 			repaint();
+			delay();
 		}
 	}
-
+	System.out.println("Game Over");
 
 	//	}
 	}
 	void update(){
 		int endLoopAt = snake.getCurrentSize();
 		CordOfSnake[] temp = snake.getSnakePos();
-		for(int x=0;x<snake.getCurrentSize();x++){
-			temp[x].setCord(xCord,yCord);
-			tiles[temp[x].getX()][temp[x].getY()] = 1;
-		}
+		gameOver =!testSnakeHead(temp[0].getX(),temp[0].getY());
+		if(!gameOver)
+			for(int x=0;x<snake.getCurrentSize();x++){
+				tiles[temp[x].getX()][temp[x].getY()] = 0;
+				temp[x].setCord(xCord,yCord);
+				tiles[temp[x].getX()][temp[x].getY()] = 1;
+			}
 	}
+	private boolean testSnakeHead(int x, int y){
+		x = x+xCord;
+		y = y+yCord;
+		if(x<0||x>SQUARE_SIDE-1||y<0||y>SQUARE_SIDE-1)
+			return false;
+		return true;
+	}
+	private void snakeHeadAtGoal(int x, int y){
 
+	}
+	//Method: setGoal() -- Type void
+	//	Sets the current goal; making sure not to be
+	//	in the player occupied spaces
+	private void setGoal(){
+		goalSetting = new String[snake.getMaxSize()-snake.getCurrentSize()];
+		int goalCounter = 0,snakeCounter,snakeCurrentSize = snake.getCurrentSize();
+		CordOfSnake temp = null;
+		boolean checkSnake = true;
+
+		//adds only empty spaces to goalSetting list
+		for(int x = 0;x<SQUARE_SIDE;x++){
+			for(int y = 0;y<SQUARE_SIDE;y++){
+				snakeCounter = 0;
+				//Checks current x,y values with snake Positions
+				while(snakeCounter<snakeCurrentSize&&checkSnake){
+					temp = snake.getSnakePos()[snakeCounter];
+					if(x==temp.getX()&&y==temp.getY())
+						checkSnake = false;
+					snakeCounter++;
+					temp = null;
+				}
+				//adds to goalSetting list if previous x,y test success
+				if(checkSnake){
+					goalSetting[goalCounter] = x+" "+y;
+					goalCounter++;
+				}
+				snakeCounter++;
+				checkSnake = true;
+			}
+
+		}
+		//randomly selects a empty space to place new goal
+		String temp2 = goalSetting[(int)(Math.random()*(snake.getMaxSize()-snake.getCurrentSize()))];
+		xGoalCord = Integer.valueOf(temp2.substring(0,temp2.indexOf(" ")));
+		yGoalCord = Integer.valueOf(temp2.substring(temp2.indexOf(" ")+1));
+
+		tiles[xGoalCord][yGoalCord] = 2;
+
+	}
+	//Method: delay() -- Type void
+	//	game delay between game tic
+	private void delay(){try{Thread.sleep(128);}catch(InterruptedException e){}}
 
 }
 
@@ -166,7 +223,9 @@ class UsersSnake{
 		System.out.print("Snake data Initialization Complete");
 	}
 	public int getCurrentSize(){return currentSize;}
+	public int getMaxSize(){return maxSize;}
 	public CordOfSnake[] getSnakePos(){return snakePos;}
+	public CordOfSnake getSnakeHead(){return snakePos[0];}
 }
 
 class CordOfSnake{
