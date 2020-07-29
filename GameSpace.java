@@ -18,7 +18,7 @@ public class GameSpace extends JFrame implements Runnable {
 	private Color 	empty = Color.BLACK,//empty game space STATE
 					player = Color.GREEN,//player owned space STATE
 					goal = Color.WHITE;//current player goal STATE
-	private int xGoalCord,yGoalCord,xCord = 0, yCord = 0;
+	private int xGoalCord,yGoalCord,xCord = 0, yCord = 0,increaseSize=0;
 	private UsersSnake snake;
 	private String[] goalSetting;
 	private boolean play = true,gameOver;
@@ -132,27 +132,42 @@ public class GameSpace extends JFrame implements Runnable {
 	//		}
 	System.out.println("g");
 	setGoal();
-	while(!gameOver){
+	while(!gameOver && !snake.getSnakeComplete()){
 		if(play){
 			update();
 			repaint();
 			delay();
 		}
 	}
-	System.out.println("Game Over");
-
+	if(snake.getSnakeComplete())
+		System.out.println("You won!");
+	else if(gameOver)
+		System.out.println("Game Over");
+	else
+		System.out.println("Error");
 	//	}
 	}
 	void update(){
-		int endLoopAt = snake.getCurrentSize();
+		int endLoopAt = snake.getCurrentSize(),tempX=-1,tempY=-1;
 		CordOfSnake[] temp = snake.getSnakePos();
 		gameOver =!testSnakeHead(temp[0].getX(),temp[0].getY());
-		if(!gameOver)
+		if(!gameOver){
+			if(increaseSize>0){
+				increaseSize--;
+				tempX = temp[endLoopAt-1].getX();
+				tempY = temp[endLoopAt-1].getY();
+			}
 			for(int x=0;x<snake.getCurrentSize();x++){
 				tiles[temp[x].getX()][temp[x].getY()] = 0;
 				temp[x].setCord(xCord,yCord);
 				tiles[temp[x].getX()][temp[x].getY()] = 1;
 			}
+			if(tempX!=-1){
+				snake.addToTail(tempX,tempY);
+				tiles[tempX][tempY] = 1;
+			}
+			snakeHeadAtGoal(temp[0].getX(),temp[0].getY());
+		}
 	}
 	private boolean testSnakeHead(int x, int y){
 		x = x+xCord;
@@ -161,9 +176,16 @@ public class GameSpace extends JFrame implements Runnable {
 			return false;
 		return true;
 	}
+	//Method: snakeHeadAtGoal() -- Type void
+	//	Checks if current goal is met; If yes, then
+	//	a new goal is set, and snake size increases
 	private void snakeHeadAtGoal(int x, int y){
-
+		if(x==xGoalCord&&y==yGoalCord){
+			increaseSize+=3;
+			setGoal();
+		}
 	}
+
 	//Method: setGoal() -- Type void
 	//	Sets the current goal; making sure not to be
 	//	in the player occupied spaces
@@ -212,6 +234,7 @@ public class GameSpace extends JFrame implements Runnable {
 class UsersSnake{
 	int maxSize,border,currentSize=1;
 	CordOfSnake[] snakePos;
+	boolean snakeComplete = false;
 
 	public UsersSnake(int sqrtSize){
 		maxSize = sqrtSize * sqrtSize;
@@ -226,6 +249,14 @@ class UsersSnake{
 	public int getMaxSize(){return maxSize;}
 	public CordOfSnake[] getSnakePos(){return snakePos;}
 	public CordOfSnake getSnakeHead(){return snakePos[0];}
+	public boolean getSnakeComplete(){return snakeComplete;}
+
+	public void addToTail(int x, int y){
+		currentSize++;
+		snakePos[currentSize-1].setCord(x,y);
+		if(currentSize==maxSize)
+			snakeComplete = true;
+	}
 }
 
 class CordOfSnake{
