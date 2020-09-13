@@ -1,9 +1,9 @@
-/**
+/**/
  * @(#)GameSpace.java
  *
  *
  * @author redmon56
- * @version 1.00 2020/7/2
+ * @version 1.6 2020/9/12
  */
 package Snake;
 
@@ -105,7 +105,7 @@ public class GameSpace extends JFrame implements Runnable {
 		@Override
 		public void keyPressed(KeyEvent e){
 			switch(e.getKeyCode()){
-				case KeyEvent.VK_SPACE: play = !play;break;
+				case KeyEvent.VK_SPACE: play = !play;System.out.println("Space");break;
 				case KeyEvent.VK_LEFT:
 				case KeyEvent.VK_A: xCord=-1;yCord=0;System.out.println("Left");break;
 				case KeyEvent.VK_RIGHT:
@@ -136,8 +136,9 @@ public class GameSpace extends JFrame implements Runnable {
 		if(play){
 			update();
 			repaint();
-			delay();
 		}
+			delay();
+		//System.out.println("pop");
 	}
 	if(snake.getSnakeComplete())
 		System.out.println("You won!");
