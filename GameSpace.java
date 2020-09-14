@@ -1,9 +1,9 @@
-/**/
+/*
  * @(#)GameSpace.java
  *
  *
  * @author redmon56
- * @version 1.6 2020/9/12
+ * @version 1.7 2020/9/12
  */
 package Snake;
 
@@ -149,25 +149,39 @@ public class GameSpace extends JFrame implements Runnable {
 	//	}
 	}
 	void update(){
-		int endLoopAt = snake.getCurrentSize(),tempX=-1,tempY=-1;
-		CordOfSnake[] temp = snake.getSnakePos();
-		gameOver =!testSnakeHead(temp[0].getX(),temp[0].getY());
+		int tempX=-1,tempY=-1,tempXTail=-1,tempYTail=-1,temp1,temp2;
+		CordOfSnake temp = snake.getSnakeHead();
+		gameOver =!testSnakeHead(temp.getX(),temp.getY());
 		if(!gameOver){
+			temp.setCord(temp.getX()-xCord,temp.getY()-yCord);
+			tiles[temp.getX()][temp.getY()] = 1;
+			if(temp.getNext()!=null)
+				temp = temp.getNext();
+			while(temp.getNext()!=null){
+				//Adds to the end of the snake if player has goal
+				if(temp.getNext().getNext()==null){
+					increaseSize--;
+					tempXTail = temp.getNext().getX();
+					tempYTail = temp.getNext().getY();
+				}
+
+				tiles[temp.getX()][temp.getY()] = 0;
+				//Switching Current Position with Previous
+				temp1 = temp.getX();
+				temp2 = temp.getY();
+				temp.setCord(tempX,tempY);
+				tempX = temp1;
+				tempY = temp2;
+
+				tiles[temp.getX()][temp.getY()] = 1;
+
+				temp = temp.getNext();
+			}
 			if(increaseSize>0){
-				increaseSize--;
-				tempX = temp[endLoopAt-1].getX();
-				tempY = temp[endLoopAt-1].getY();
+				snake.addToTail(tempXTail,tempYTail);
+				tiles[tempXTail][tempYTail] = 1;
 			}
-			for(int x=0;x<snake.getCurrentSize();x++){
-				tiles[temp[x].getX()][temp[x].getY()] = 0;
-				temp[x].setCord(xCord,yCord);
-				tiles[temp[x].getX()][temp[x].getY()] = 1;
-			}
-			if(tempX!=-1){
-				snake.addToTail(tempX,tempY);
-				tiles[tempX][tempY] = 1;
-			}
-			snakeHeadAtGoal(temp[0].getX(),temp[0].getY());
+			snakeHeadAtGoal(snake.getSnakeHead().getX(),snake.getSnakeHead().getY());
 		}
 	}
 	private boolean testSnakeHead(int x, int y){
@@ -191,35 +205,28 @@ public class GameSpace extends JFrame implements Runnable {
 	//	Sets the current goal; making sure not to be
 	//	in the player occupied spaces
 	private void setGoal(){
-		goalSetting = new String[snake.getMaxSize()-snake.getCurrentSize()];
-		int goalCounter = 0,snakeCounter,snakeCurrentSize = snake.getCurrentSize();
-		CordOfSnake temp = null;
-		boolean checkSnake = true;
+		goalSetting = new String[snake.getMaxSize()];
+		int snakeCurrentSize = snake.getCurrentSize();
+		CordOfSnake temp = snake.getSnakeHead();
 
 		//adds only empty spaces to goalSetting list
-		for(int x = 0;x<SQUARE_SIDE;x++){
-			for(int y = 0;y<SQUARE_SIDE;y++){
-				snakeCounter = 0;
-				//Checks current x,y values with snake Positions
-				while(snakeCounter<snakeCurrentSize&&checkSnake){
-					temp = snake.getSnakePos()[snakeCounter];
-					if(x==temp.getX()&&y==temp.getY())
-						checkSnake = false;
-					snakeCounter++;
-					temp = null;
-				}
-				//adds to goalSetting list if previous x,y test success
-				if(checkSnake){
-					goalSetting[goalCounter] = x+" "+y;
-					goalCounter++;
-				}
-				snakeCounter++;
-				checkSnake = true;
-			}
+		for(int x = 0;x<SQUARE_SIDE;x++)
+			for(int y = 0;y<SQUARE_SIDE;y++)
+				goalSetting[(x*SQUARE_SIDE)+y] = x+" "+y;
 
-		}
+		//Removes spaces taken by the snake
+		while(temp.getNext()!=null)
+			goalSetting[(temp.getX()*SQUARE_SIDE)+temp.getY()] = null;
+
 		//randomly selects a empty space to place new goal
-		String temp2 = goalSetting[(int)(Math.random()*(snake.getMaxSize()-snake.getCurrentSize()))];
+		int randomNum = (int)(Math.random()*(snake.getMaxSize()));
+		String temp2 = goalSetting[randomNum];
+		//If space is taken by snake, then it tries the next space
+		while(temp2==null){
+			randomNum+=1;
+			temp2 = goalSetting[randomNum];
+		}
+
 		xGoalCord = Integer.valueOf(temp2.substring(0,temp2.indexOf(" ")));
 		yGoalCord = Integer.valueOf(temp2.substring(temp2.indexOf(" ")+1));
 
@@ -233,28 +240,31 @@ public class GameSpace extends JFrame implements Runnable {
 }
 
 class UsersSnake{
-	int maxSize,border,currentSize=1;
-	CordOfSnake[] snakePos;
+	int maxSize,border,currentSize=1,
+		facingDirection = -1;//[-1=no direction,0=up,1=right,2=down,3=left]
+	CordOfSnake snakeHead,snakeTail;
 	boolean snakeComplete = false;
 
 	public UsersSnake(int sqrtSize){
 		maxSize = sqrtSize * sqrtSize;
 		border = sqrtSize;
-		snakePos = new CordOfSnake[maxSize];
-		for(int x=0;x<maxSize;x++)
-			snakePos[x] = new CordOfSnake();
-		snakePos[0].setCord(border/2,border/2);
+		snakeHead = new CordOfSnake();
+		snakeHead.setCord(border/2,border/2);
+		snakeTail = snakeHead;
 		System.out.print("Snake data Initialization Complete");
 	}
 	public int getCurrentSize(){return currentSize;}
 	public int getMaxSize(){return maxSize;}
-	public CordOfSnake[] getSnakePos(){return snakePos;}
-	public CordOfSnake getSnakeHead(){return snakePos[0];}
+	public int getFacingDirection(){return facingDirection;}
+//	public CordOfSnake[] getSnakePos(){return snakePos;}
+	public CordOfSnake getSnakeHead(){return snakeHead;}
 	public boolean getSnakeComplete(){return snakeComplete;}
 
 	public void addToTail(int x, int y){
 		currentSize++;
-		snakePos[currentSize-1].setCord(x,y);
+		snakeTail.setNext();
+		snakeTail = snakeTail.getNext();
+		snakeTail.setCord(x,y);
 		if(currentSize==maxSize)
 			snakeComplete = true;
 	}
@@ -262,8 +272,13 @@ class UsersSnake{
 
 class CordOfSnake{
 	private int x,y;
+	private CordOfSnake next = null;
 
-	void setCord(int xPos, int yPos){x = x + xPos; y = y + yPos;}
 	public int getX(){return x;}
 	public int getY(){return y;}
-}
+	public CordOfSnake getNext(){return next;}
+
+	//void setCord(int xPos, int yPos){x = x + xPos; y = y + yPos;}
+	void setCord(int xPos, int yPos){x = xPos; y = yPos;}
+	public void setNext(){next = new CordOfSnake();}
+	}
