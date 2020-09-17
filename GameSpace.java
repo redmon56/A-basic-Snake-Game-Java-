@@ -107,13 +107,13 @@ public class GameSpace extends JFrame implements Runnable {
 			switch(e.getKeyCode()){
 				case KeyEvent.VK_SPACE: play = !play;System.out.println("Space");break;
 				case KeyEvent.VK_LEFT:
-				case KeyEvent.VK_A: xCord=-1;yCord=0;System.out.println("Left");break;
+				case KeyEvent.VK_A: xCord=1;yCord=0;System.out.println("Left");break;
 				case KeyEvent.VK_RIGHT:
-				case KeyEvent.VK_D: xCord=1;yCord=0;System.out.println("Right");break;
+				case KeyEvent.VK_D: xCord=-1;yCord=0;System.out.println("Right");break;
 				case KeyEvent.VK_UP:
-				case KeyEvent.VK_W: xCord=0;yCord=-1;break;
+				case KeyEvent.VK_W: xCord=0;yCord=1;break;
 				case KeyEvent.VK_DOWN:
-				case KeyEvent.VK_S: xCord=0;yCord=1;break;
+				case KeyEvent.VK_S: xCord=0;yCord=-1;break;
 			}
 
 		}
@@ -137,6 +137,7 @@ public class GameSpace extends JFrame implements Runnable {
 			update();
 			repaint();
 		}
+
 			delay();
 		//System.out.println("pop");
 	}
@@ -149,21 +150,31 @@ public class GameSpace extends JFrame implements Runnable {
 	//	}
 	}
 	void update(){
-		int tempX=-1,tempY=-1,tempXTail=-1,tempYTail=-1,temp1,temp2;
+		int tempX=-1,tempY=-1,tempXTail=-1,tempYTail=-1,temp1,temp2,size = snake.getCurrentSize(),
+			xCordForThisUpdate = xCord,yCordForThisUpdate = yCord;
 		CordOfSnake temp = snake.getSnakeHead();
-		gameOver =!testSnakeHead(temp.getX(),temp.getY());
+		gameOver =!testSnakeHead(temp.getX(),temp.getY(),xCordForThisUpdate,yCordForThisUpdate);
 		if(!gameOver){
-			temp.setCord(temp.getX()-xCord,temp.getY()-yCord);
+			tiles[temp.getX()][temp.getY()] = 0;
+
+			temp1 = temp.getX();
+			temp2 = temp.getY();
+			temp.setCord(temp1-xCordForThisUpdate,temp2-yCordForThisUpdate);
+			tempX = temp1;
+			tempY = temp2;
+
 			tiles[temp.getX()][temp.getY()] = 1;
-			if(temp.getNext()!=null)
-				temp = temp.getNext();
+			System.out.println("5th Done");
+			//Checks if snake will increase its size, if yes then
+			//the tails coords of obtained before the snake is moved.
+			if(increaseSize>0){
+				tempXTail = snake.getSnakeTail().getX();
+				tempYTail = snake.getSnakeTail().getY();
+			}
+
+			System.out.println("6th Done");
 			while(temp.getNext()!=null){
-				//Adds to the end of the snake if player has goal
-				if(temp.getNext().getNext()==null){
-					increaseSize--;
-					tempXTail = temp.getNext().getX();
-					tempYTail = temp.getNext().getY();
-				}
+				temp = temp.getNext();
 
 				tiles[temp.getX()][temp.getY()] = 0;
 				//Switching Current Position with Previous
@@ -175,19 +186,21 @@ public class GameSpace extends JFrame implements Runnable {
 
 				tiles[temp.getX()][temp.getY()] = 1;
 
-				temp = temp.getNext();
 			}
 			if(increaseSize>0){
+				increaseSize--;
 				snake.addToTail(tempXTail,tempYTail);
+				System.out.println(tempXTail + " " + tempYTail);
 				tiles[tempXTail][tempYTail] = 1;
 			}
 			snakeHeadAtGoal(snake.getSnakeHead().getX(),snake.getSnakeHead().getY());
 		}
 	}
-	private boolean testSnakeHead(int x, int y){
-		x = x+xCord;
-		y = y+yCord;
-		if(x<0||x>SQUARE_SIDE-1||y<0||y>SQUARE_SIDE-1)
+	private boolean testSnakeHead(int x, int y, int xTest, int yTest){
+		x = x+xTest;
+		y = y+yTest;
+		if(x<0&&x>SQUARE_SIDE-3&&y<0&&y>SQUARE_SIDE-3)
+		//if(x==-1||x==SQUARE_SIDE||y==-1||y==SQUARE_SIDE)
 			return false;
 		return true;
 	}
@@ -197,7 +210,9 @@ public class GameSpace extends JFrame implements Runnable {
 	private void snakeHeadAtGoal(int x, int y){
 		if(x==xGoalCord&&y==yGoalCord){
 			increaseSize+=3;
+			System.out.println("***");
 			setGoal();
+			System.out.println("---");
 		}
 	}
 
@@ -215,12 +230,16 @@ public class GameSpace extends JFrame implements Runnable {
 				goalSetting[(x*SQUARE_SIDE)+y] = x+" "+y;
 
 		//Removes spaces taken by the snake
-		while(temp.getNext()!=null)
+		goalSetting[(temp.getX()*SQUARE_SIDE)+temp.getY()] = null;
+		while(temp.getNext()!=null){
+			temp = temp.getNext();
 			goalSetting[(temp.getX()*SQUARE_SIDE)+temp.getY()] = null;
+		}
 
 		//randomly selects a empty space to place new goal
 		int randomNum = (int)(Math.random()*(snake.getMaxSize()));
 		String temp2 = goalSetting[randomNum];
+
 		//If space is taken by snake, then it tries the next space
 		while(temp2==null){
 			randomNum+=1;
@@ -231,7 +250,6 @@ public class GameSpace extends JFrame implements Runnable {
 		yGoalCord = Integer.valueOf(temp2.substring(temp2.indexOf(" ")+1));
 
 		tiles[xGoalCord][yGoalCord] = 2;
-
 	}
 	//Method: delay() -- Type void
 	//	game delay between game tic
@@ -258,9 +276,11 @@ class UsersSnake{
 	public int getFacingDirection(){return facingDirection;}
 //	public CordOfSnake[] getSnakePos(){return snakePos;}
 	public CordOfSnake getSnakeHead(){return snakeHead;}
+	public CordOfSnake getSnakeTail(){return snakeTail;}
 	public boolean getSnakeComplete(){return snakeComplete;}
 
 	public void addToTail(int x, int y){
+		System.out.println("Done");
 		currentSize++;
 		snakeTail.setNext();
 		snakeTail = snakeTail.getNext();
