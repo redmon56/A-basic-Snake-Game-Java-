@@ -3,7 +3,7 @@
  *
  *
  * @author redmon56
- * @version 1.7 2020/9/12
+ * @version 1.8 2020/9/16
  */
 package Snake;
 
