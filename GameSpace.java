@@ -3,7 +3,7 @@
  *
  *
  * @author redmon56
- * @version 1.8 2020/9/16
+ * @version 1.9 2020/9/20
  */
 package Snake;
 
@@ -22,6 +22,7 @@ public class GameSpace extends JFrame implements Runnable {
 	private UsersSnake snake;
 	private String[] goalSetting;
 	private boolean play = true,gameOver;
+	private JLabel score;
 
 
 	public static void main(String[] arg){
@@ -73,14 +74,23 @@ public class GameSpace extends JFrame implements Runnable {
 
 			temp = new JPanel(new GridLayout(1,3));
 			{
-				label = new JLabel("test");
-					label.setFont(new Font("Courier",0,42));
+				label = new JLabel("Generic Snake",SwingConstants.CENTER);
+					label.setFont(new Font("Dialog",0,16));
 				temp.add(label);
-				label = new JLabel("test");
-					label.setFont(new Font("Courier",0,36));
-				temp.add(label);
-				label = new JLabel("test");
-					label.setFont(new Font("Courier",0,36));
+
+				JPanel middle = new JPanel(new GridLayout(2,1));
+				{
+					label = new JLabel("Score:",SwingConstants.CENTER);
+						label.setFont(new Font("Courier",0,16));
+					middle.add(label);
+					score = new JLabel("1",SwingConstants.CENTER);
+						score.setFont(new Font("Courier",0,16));
+					middle.add(score);
+				}
+				temp.add(middle);
+
+				label = new JLabel("test",SwingConstants.CENTER);
+					label.setFont(new Font("Courier",0,18));
 				temp.add(label);
 				temp.setBorder(new EtchedBorder());
 			}add(temp,BorderLayout.NORTH);
@@ -104,17 +114,20 @@ public class GameSpace extends JFrame implements Runnable {
 	class Keypress implements KeyListener{
 		@Override
 		public void keyPressed(KeyEvent e){
+			int direction = snake.getFacingDirection();
 			switch(e.getKeyCode()){
 				case KeyEvent.VK_SPACE: play = !play;System.out.println("Space");break;
 				case KeyEvent.VK_LEFT:
-				case KeyEvent.VK_A: xCord=1;yCord=0;System.out.println("Left");break;
+				case KeyEvent.VK_A: if(direction!=1){xCord=1;yCord=0;snake.setFacingDirection(3);}break;
 				case KeyEvent.VK_RIGHT:
-				case KeyEvent.VK_D: xCord=-1;yCord=0;System.out.println("Right");break;
+				case KeyEvent.VK_D: if(direction!=3){xCord=-1;yCord=0;snake.setFacingDirection(1);}break;
 				case KeyEvent.VK_UP:
-				case KeyEvent.VK_W: xCord=0;yCord=1;break;
+				case KeyEvent.VK_W: if(direction!=2){xCord=0;yCord=1;snake.setFacingDirection(0);}break;
 				case KeyEvent.VK_DOWN:
-				case KeyEvent.VK_S: xCord=0;yCord=-1;break;
+				case KeyEvent.VK_S: if(direction!=0){xCord=0;yCord=-1;snake.setFacingDirection(2);}break;
 			}
+			if(snake.getCurrentSize()==1)
+				snake.setFacingDirection(-1);
 
 		}
 		@Override
@@ -134,10 +147,11 @@ public class GameSpace extends JFrame implements Runnable {
 	setGoal();
 	while(!gameOver && !snake.getSnakeComplete()){
 		if(play){
-			update();
 			repaint();
-		}
+			update();
 
+			delay();
+		}else
 			delay();
 		//System.out.println("pop");
 	}
@@ -164,7 +178,6 @@ public class GameSpace extends JFrame implements Runnable {
 			tempY = temp2;
 
 			tiles[temp.getX()][temp.getY()] = 1;
-			System.out.println("5th Done");
 			//Checks if snake will increase its size, if yes then
 			//the tails coords of obtained before the snake is moved.
 			if(increaseSize>0){
@@ -172,7 +185,6 @@ public class GameSpace extends JFrame implements Runnable {
 				tempYTail = snake.getSnakeTail().getY();
 			}
 
-			System.out.println("6th Done");
 			while(temp.getNext()!=null){
 				temp = temp.getNext();
 
@@ -185,7 +197,6 @@ public class GameSpace extends JFrame implements Runnable {
 				tempY = temp2;
 
 				tiles[temp.getX()][temp.getY()] = 1;
-
 			}
 			if(increaseSize>0){
 				increaseSize--;
@@ -195,12 +206,10 @@ public class GameSpace extends JFrame implements Runnable {
 			}
 			snakeHeadAtGoal(snake.getSnakeHead().getX(),snake.getSnakeHead().getY());
 		}
+		System.out.println("Complete Update");
 	}
 	private boolean testSnakeHead(int x, int y, int xTest, int yTest){
-		x = x+xTest;
-		y = y+yTest;
-		if(x<0&&x>SQUARE_SIDE-3&&y<0&&y>SQUARE_SIDE-3)
-		//if(x==-1||x==SQUARE_SIDE||y==-1||y==SQUARE_SIDE)
+		if(x==0||x==SQUARE_SIDE-1||y==0||y==SQUARE_SIDE-1)
 			return false;
 		return true;
 	}
@@ -210,7 +219,7 @@ public class GameSpace extends JFrame implements Runnable {
 	private void snakeHeadAtGoal(int x, int y){
 		if(x==xGoalCord&&y==yGoalCord){
 			increaseSize+=3;
-			System.out.println("***");
+			score.setText(""+(snake.getCurrentSize()+3));
 			setGoal();
 			System.out.println("---");
 		}
@@ -279,6 +288,7 @@ class UsersSnake{
 	public CordOfSnake getSnakeTail(){return snakeTail;}
 	public boolean getSnakeComplete(){return snakeComplete;}
 
+	public void setFacingDirection(int f){ facingDirection = f;}
 	public void addToTail(int x, int y){
 		System.out.println("Done");
 		currentSize++;
