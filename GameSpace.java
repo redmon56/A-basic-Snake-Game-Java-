@@ -13,12 +13,13 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class GameSpace extends JFrame implements Runnable {
-	static int SQUARE_SIDE = 20;//Number of tiles per side
+	static int SQUARE_SIDE = 22;//Number of tiles per side
 	private Byte[][] tiles;//0=empty; 1=player; 2=goal;
 	private Color 	empty = Color.BLACK,//empty game space STATE
 					player = Color.GREEN,//player owned space STATE
 					goal = Color.WHITE;//current player goal STATE
-	private int xGoalCord,yGoalCord,xCord = 0, yCord = 0,increaseSize=0;
+	private int xGoalCord,yGoalCord,xCord = 0, yCord = 0,increaseSize=0,
+			direction = -1,lastDirection=-1;
 	private UsersSnake snake;
 	private String[] goalSetting;
 	private boolean play = true,gameOver;
@@ -100,9 +101,9 @@ public class GameSpace extends JFrame implements Runnable {
     	public void paintComponent(Graphics g){
 			super.paintComponent(g);
 
-			for(int x=0;x<20;x++)
-				for(int y=0;y<20;y++){
-					switch(tiles[x][y]){
+			for(int x=0;x<SQUARE_SIDE-2;x++)
+				for(int y=0;y<SQUARE_SIDE-2;y++){
+					switch(tiles[x+1][y+1]){
 						case 0: g.setColor(empty); break;
 						case 1: g.setColor(player); break;
 						case 2: g.setColor(goal); break;
@@ -114,20 +115,39 @@ public class GameSpace extends JFrame implements Runnable {
 	class Keypress implements KeyListener{
 		@Override
 		public void keyPressed(KeyEvent e){
-			int direction = snake.getFacingDirection();
+			direction = snake.getFacingDirection();
+			lastDirection=-1;
+
+			//Prevents 180 degree direction change
+			if(snake.getLastDirection()!=-1)
+				 lastDirection = snake.getLastDirection()+2;
+			if(lastDirection>3)
+				lastDirection-=4;
+			snake.setLastDirection(direction);
+
 			switch(e.getKeyCode()){
 				case KeyEvent.VK_SPACE: play = !play;System.out.println("Space");break;
 				case KeyEvent.VK_LEFT:
-				case KeyEvent.VK_A: if(direction!=1){xCord=1;yCord=0;snake.setFacingDirection(3);}break;
+				case KeyEvent.VK_A: if(direction!=1){
+										if(lastDirection!=1){
+											xCord=1;yCord=0;snake.setFacingDirection(3);}}break;
 				case KeyEvent.VK_RIGHT:
-				case KeyEvent.VK_D: if(direction!=3){xCord=-1;yCord=0;snake.setFacingDirection(1);}break;
+				case KeyEvent.VK_D: if(direction!=3){
+										if(lastDirection!=3){
+											xCord=-1;yCord=0;snake.setFacingDirection(1);}}break;
 				case KeyEvent.VK_UP:
-				case KeyEvent.VK_W: if(direction!=2){xCord=0;yCord=1;snake.setFacingDirection(0);}break;
+				case KeyEvent.VK_W: if(direction!=2){
+										if(lastDirection!=2){
+											xCord=0;yCord=1;snake.setFacingDirection(0);}}break;
 				case KeyEvent.VK_DOWN:
-				case KeyEvent.VK_S: if(direction!=0){xCord=0;yCord=-1;snake.setFacingDirection(2);}break;
+				case KeyEvent.VK_S: if(direction!=0){
+										if(lastDirection!=0){
+											xCord=0;yCord=-1;snake.setFacingDirection(2);}}break;
 			}
-			if(snake.getCurrentSize()==1)
+			if(snake.getCurrentSize()==1){
 				snake.setFacingDirection(-1);
+				snake.setLastDirection(-1);
+			}
 
 		}
 		@Override
@@ -143,7 +163,6 @@ public class GameSpace extends JFrame implements Runnable {
 	//		for(int x=0;x<1000;x++){
 	//			System.out.println("dd");
 	//		}
-	System.out.println("g");
 	setGoal();
 	while(!gameOver && !snake.getSnakeComplete()){
 		if(play){
@@ -167,7 +186,7 @@ public class GameSpace extends JFrame implements Runnable {
 		int tempX=-1,tempY=-1,tempXTail=-1,tempYTail=-1,temp1,temp2,size = snake.getCurrentSize(),
 			xCordForThisUpdate = xCord,yCordForThisUpdate = yCord;
 		CordOfSnake temp = snake.getSnakeHead();
-		gameOver =!testSnakeHead(temp.getX(),temp.getY(),xCordForThisUpdate,yCordForThisUpdate);
+		gameOver =!testSnakeHead(temp.getX(),temp.getY(),xCordForThisUpdate,yCordForThisUpdate,temp);
 		if(!gameOver){
 			tiles[temp.getX()][temp.getY()] = 0;
 
@@ -201,16 +220,24 @@ public class GameSpace extends JFrame implements Runnable {
 			if(increaseSize>0){
 				increaseSize--;
 				snake.addToTail(tempXTail,tempYTail);
-				System.out.println(tempXTail + " " + tempYTail);
+				//System.out.println(tempXTail + " " + tempYTail);
 				tiles[tempXTail][tempYTail] = 1;
 			}
 			snakeHeadAtGoal(snake.getSnakeHead().getX(),snake.getSnakeHead().getY());
 		}
-		System.out.println("Complete Update");
+		//System.out.println("Complete Update");
 	}
-	private boolean testSnakeHead(int x, int y, int xTest, int yTest){
+	private boolean testSnakeHead(int x, int y, int xTest, int yTest,CordOfSnake temp){
 		if(x==0||x==SQUARE_SIDE-1||y==0||y==SQUARE_SIDE-1)
 			return false;
+		if(temp.getNext()!=null){
+			temp = temp.getNext();
+			while(temp.getNext()!=null){
+				if(temp.getX()==x && temp.getY()==y)
+					return false;
+				temp = temp.getNext();
+			}
+		}
 		return true;
 	}
 	//Method: snakeHeadAtGoal() -- Type void
@@ -221,7 +248,6 @@ public class GameSpace extends JFrame implements Runnable {
 			increaseSize+=3;
 			score.setText(""+(snake.getCurrentSize()+3));
 			setGoal();
-			System.out.println("---");
 		}
 	}
 
@@ -234,15 +260,15 @@ public class GameSpace extends JFrame implements Runnable {
 		CordOfSnake temp = snake.getSnakeHead();
 
 		//adds only empty spaces to goalSetting list
-		for(int x = 0;x<SQUARE_SIDE;x++)
-			for(int y = 0;y<SQUARE_SIDE;y++)
-				goalSetting[(x*SQUARE_SIDE)+y] = x+" "+y;
+		for(int x = 0;x<SQUARE_SIDE-2;x++)
+			for(int y = 0;y<SQUARE_SIDE-2;y++)
+				goalSetting[(x*(SQUARE_SIDE-2)+y)] = (x+1)+" "+(y+1);
 
 		//Removes spaces taken by the snake
-		goalSetting[(temp.getX()*SQUARE_SIDE)+temp.getY()] = null;
+		goalSetting[((temp.getX()-1)*(SQUARE_SIDE-2))+(temp.getY()-1)] = null;
 		while(temp.getNext()!=null){
 			temp = temp.getNext();
-			goalSetting[(temp.getX()*SQUARE_SIDE)+temp.getY()] = null;
+			goalSetting[((temp.getX()-1)*(SQUARE_SIDE-2))+(temp.getY()-1)] = null;
 		}
 
 		//randomly selects a empty space to place new goal
@@ -268,11 +294,12 @@ public class GameSpace extends JFrame implements Runnable {
 
 class UsersSnake{
 	int maxSize,border,currentSize=1,
-		facingDirection = -1;//[-1=no direction,0=up,1=right,2=down,3=left]
+		facingDirection = -1,lastDirection=-1;//[-1=no direction,0=up,1=right,2=down,3=left]
 	CordOfSnake snakeHead,snakeTail;
 	boolean snakeComplete = false;
 
 	public UsersSnake(int sqrtSize){
+		sqrtSize = sqrtSize-2;
 		maxSize = sqrtSize * sqrtSize;
 		border = sqrtSize;
 		snakeHead = new CordOfSnake();
@@ -283,14 +310,15 @@ class UsersSnake{
 	public int getCurrentSize(){return currentSize;}
 	public int getMaxSize(){return maxSize;}
 	public int getFacingDirection(){return facingDirection;}
+	public int getLastDirection(){return lastDirection;}
 //	public CordOfSnake[] getSnakePos(){return snakePos;}
 	public CordOfSnake getSnakeHead(){return snakeHead;}
 	public CordOfSnake getSnakeTail(){return snakeTail;}
 	public boolean getSnakeComplete(){return snakeComplete;}
 
 	public void setFacingDirection(int f){ facingDirection = f;}
+	public void setLastDirection(int d){ lastDirection = d;}
 	public void addToTail(int x, int y){
-		System.out.println("Done");
 		currentSize++;
 		snakeTail.setNext();
 		snakeTail = snakeTail.getNext();
